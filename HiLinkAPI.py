@@ -378,6 +378,8 @@ class webui(Thread):
                     # wingles always comes with authentication even hilink_login==0
                     if str(self._deviceClassify).upper() == "WINGLE":
                         self._loginRequired = True
+                    elif str(self._deviceClassify).upper() == "CPE":
+                        self._loginRequired = True
                     else:
                         self._loginRequired = False
                 elif int(hilinkLogin['response']['hilink_login']) == 1:
