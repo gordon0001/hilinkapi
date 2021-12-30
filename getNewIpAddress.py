@@ -5,22 +5,16 @@ from datetime import datetime
 
 logging.basicConfig(filename="hilinkapitest.log", format='%(asctime)s --  %(name)s::%(levelname)s -- {%(pathname)s:%(lineno)d} -- %(message)s', level=logging.DEBUG, datefmt="%Y-%m-%d %I:%M:%S %p:%Z")
 
+deviceFound = False
+firstFoundDeviceOnly = True
 try:
     webUIArray = [
-        # webui("E3372h-153", "192.168.18.1", "admin", "admin", logger=logging),
-        # webui("E3372h-320", "192.168.8.1", "admin", "abcd@1234", logger=logging),
-        webui("E818-26X", "192.168.8.1", "admin", "admin"),
-        # webui("E8372h-320", "192.168.10.1", "admin", "abcd@1234",logger=logging),
+        webui("E818-26X", "192.168.8.1", "admin", "admin"), # -260 (Vodaphone?) or -263 (Drei?). Both are fully unlocked, the -263 just has a few more LTEBands to use, otherwise both are perfectly suitable for Germany and Austria 
+        webui("E3372h-153", "192.168.18.1", "admin", "admin", logger=logging), # known as a reliable LTE modem over the world and works  in optionalally over ncm protocol (usb cdc ncm, fw 21.XX, nonhilink) or over ethernet (usb cdc ether, fw 22.XX, hilink) mode
+        webui("E3372h-320", "192.168.8.1", "admin", "abcd@1234", logger=logging),
     ]
-    
     for webUI in webUIArray:
         try:
-            # print known errors
-            # print("############# Known errors ############")
-            # knownErrors = webUI.getKnownErrors()
-            # for errorCode in knownErrors.keys():
-            #    print(f"{errorCode} = {str(knownErrors[errorCode])}")
-            # print("########################################")                
             # start
             webUI.start()
             # wait until validate the session
@@ -34,9 +28,10 @@ try:
                 if webUI.getLoginWaitTime() > 0:
                     print(f"Login wait time available = {webUI.getLoginWaitTime()} minutes")
                     sleep(5)
+            deviceFound = True
             ########
             # Enable data roaming and set max idle time out into 2 hours (7200 seconds)
-            webUI.configureDataConnection(True, 7200)
+            # webUI.configureDataConnection(True, 7200)
             ########
             # query data  connection
             webUI.queryDataConnection()
@@ -57,11 +52,6 @@ try:
             # webUI.setSessionRefreshInteval(10)
             print(f"Session refresh interval = {webUI.getSessionRefreshInteval()}")
             print("########################################")
-            # data connection info
-            print("########################################")
-            print(f"Data roaming = {webUI.getDataRoaming()}")
-            print(f"Max idle time = {webUI.getMaxIdleTime()}")
-            print("########################################")
             # set primary and secondary network modes
             netMode = webUI.setNetwokModes("LTE", "WCDMA")
             print(f"Network mode setting = {netMode}")
@@ -81,47 +71,20 @@ try:
             ######### Reboot #########
             # webUI.reboot()
             #######Reboot end#########
-            # Connection on off
+            # switching LTE / WCDMA
             print(f"\t{datetime.now()}")
             webUI.queryWANIP()
-            print(f"\tWAPN IP = {webUI.getWANIP()}")
-            print(f"\tSwitching - Connection off = {webUI.switchConnection(False)}")
+            print(f"\tWAN IP = {webUI.getWANIP()}")
+            status = webUI.switchNetworMode(False)
+            print(f"\tSwitching - WCDMA = \t{status}")
             sleep(1)
-            print(f"\tSwitching - Connection on = {webUI.switchConnection(True)}")
+            status = webUI.switchNetworMode(True)
+            print(f"\tSwitching - LTE = \t{status}")
             webUI.queryWANIP()
             while webUI.getWANIP() is None:
                 webUI.queryWANIP()
-            print(f"\tWAPN IP = {webUI.getWANIP()}")
-            print("")
-            # switching LTE / WCDMA
-            times = 1
-            while times > 0:
-                times -= 1
-                rotation = open("rotation", 'a')
-                print(f"\t{datetime.now()}")
-                rotation.write(f"{datetime.now()}\n")
-                webUI.queryWANIP()
-                print(f"\tWAPN IP = {webUI.getWANIP()}")
-                rotation.write(f"WAPN IP = {webUI.getWANIP()}\n")
-                status = webUI.switchNetworMode(False)
-                print(f"\tSwitching - WCDMA = \t{status}")
-                rotation.write(f"Switching - WCDMA = \t{status}\n")
-                sleep(1)
-                status = webUI.switchNetworMode(True)
-                print(f"\tSwitching - LTE = \t{status}")
-                rotation.write(f"Switching - LTE = \t{status}\n")
-                webUI.queryWANIP()
-                while webUI.getWANIP() is None:
-                    webUI.queryWANIP()
-                print(f"\tWAPN IP = {webUI.getWANIP()}")
-                rotation.write(f"WAPN IP = {webUI.getWANIP()}\n")
-                print(f"\t{datetime.now()}")
-                rotation.write(f"{datetime.now()}\n\n")
-                print("\n")
-                rotation.close()
-                sleep(60)
-            # webUI.switchDHCPIPBlock("192.168.8.1")
-            
+            print(f"\tWAN IP = {webUI.getWANIP()}")
+            print(f"\t{datetime.now()}\n")
             print("****************************************\n\n")
             ###################
             # stop
@@ -131,8 +94,9 @@ try:
                 print(f"Waiting for stop")
                 sleep(1)
         except Exception as e:
-            print(e)
-        
+             print(e)
+        if firstFoundDeviceOnly is True and deviceFound is True:
+           break
 except Exception as e:
     print(e)
 # End of the test
